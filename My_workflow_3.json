@@ -1,0 +1,253 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -340,
+        -260
+      ],
+      "id": "813d203a-9908-4847-86e0-130bc2049e38",
+      "name": "Telegram Trigger",
+      "webhookId": "eb437fb6-2929-459d-921a-29bb02553305",
+      "credentials": {
+        "telegramApi": {
+          "id": "4JZoDWIGq1YT5ywm",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract message data from Telegram\nconst message = $json.message.text || '';\nconst chatId = $json.message.chat.id;\nconst userId = $json.message.from.id;\nconst userName = $json.message.from.first_name || 'User';\n\n// Handle commands\nif (message.startsWith('/start')) {\n  return [{\n    json: {\n      chatId: chatId,\n      responseText: `Hello ${userName}! 👋 I'm your AI assistant powered by Llama. Ask me anything!`,\n      skipAI: true\n    }\n  }];\n}\n\nif (message.startsWith('/help')) {\n  return [{\n    json: {\n      chatId: chatId,\n      responseText: `I can help you with:\n- ❓ Answer questions\n- 💻 Code assistance  \n- ✍️ Creative writing\n- 📚 Explanations\n- 💡 Problem solving\n\nJust type your message!`,\n      skipAI: true\n    }\n  }];\n}\n\n// Regular message - send to AI\nreturn [{\n  json: {\n    chatId: chatId,\n    userMessage: message,\n    userName: userName,\n    skipAI: false\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        20
+      ],
+      "id": "c3f56fe7-783a-4ec3-80dc-bcfa16db840d",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "943c1b1b-777b-43a9-9e56-4cda069bbe5c",
+              "leftValue": "$json.skipAI",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "818b02a5-7e6a-4a9e-8b2f-bb36b28ac917",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        -320
+      ],
+      "id": "4a865329-30ae-450b-b32c-bd13db12d178",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"meta-llama/llama-4-maverick:free\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful AI assistant in a Telegram bot. Keep responses concise, friendly, and useful. Use emojis when appropriate.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.userMessage }}\"\n    }\n  ],\n  \"max_tokens\": 1000,\n  \"temperature\": 0.7\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        -20
+      ],
+      "id": "5c4ccf0c-64c1-42db-bb31-bb756f4ba3ed",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if API call was successful\nif ($json.error) {\n  // Handle API error\n  const chatId = $('Code').first().json.chatId; // Get chatId from first Code node\n  return [{\n    json: {\n      chatId: chatId,\n      responseText: \"Sorry, I'm having trouble right now. Please try again later! 🤖\"\n    }\n  }];\n}\n\n// Extract AI response\nconst aiResponse = $json.choices[0].message.content;\nconst chatId = $('Code').first().json.chatId; // Get chatId from first Code node\n\nreturn [{\n  json: {\n    chatId: chatId,\n    responseText: aiResponse\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -180
+      ],
+      "id": "67cdd219-3e8a-4fe8-bd19-7deac43be1da",
+      "name": "Code1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        340,
+        -320
+      ],
+      "id": "5cfa8e5d-28a7-452e-94ca-deb7bc1441f6",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot7772999020:AAGBJpTT7d7naLJo9eZ951128OplqZT2IaE/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Telegram Trigger').item.json.message.chat.id }}\",\n  \"text\": \"{{ $('Merge').item.json.responseText }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        -200
+      ],
+      "id": "ba4d1ccc-cb20-4835-8fef-044202c0e395",
+      "name": "HTTP Request1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8b98e345-70a2-40d5-a780-6fe6a4b86189",
+  "meta": {
+    "instanceId": "58e784e1ae65d4d224ce88197b479f2bcb9112d2610bbc153a1dc777cf44679e"
+  },
+  "id": "WVobGlQVRnzemSUk",
+  "tags": []
+}
